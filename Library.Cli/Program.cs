@@ -8,16 +8,15 @@ namespace Library.Cli
         static void Main(string[] args)
         {
             var catalog = new Catalog();
+            var fiction = catalog.AddCategory("Fiction");
 
             BookId last = default;
             for (int i = 0; i < 20; i++)
-                last = catalog.AddBook(9788574801407 + i, $"Book {i}", "Author", 2000, new CategoryId(0));
+                last = catalog.AddBook(9788574801407 + i, $"Book {i}", "Author", 2000, fiction);
 
             Console.WriteLine(last.Value);
             Console.WriteLine(catalog.GetTitle(last));
-
-            var user = catalog.AddUser("User");
-            Console.WriteLine(catalog.GetName(user));
+            Console.WriteLine(catalog.GetCategoryName(fiction));
         }
     }
 }

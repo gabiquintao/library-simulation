@@ -7,5 +7,6 @@
         public CategoryId Id { get; init; }
         public int NameOffset { get; init; }
         public int NameLength { get; init; }
+        
     }
 }
