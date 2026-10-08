@@ -1,7 +1,10 @@
-﻿namespace Library.Core.Models
+﻿using System.Runtime.InteropServices;
+
+namespace Library.Core.Models
 {
     public enum LoanState : byte { Active, Returned }
 
+    [StructLayout(LayoutKind.Sequential)]
     public readonly record struct Loan
     {
         public long LoanedAt { get; init; }
