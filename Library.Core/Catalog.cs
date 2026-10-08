@@ -8,9 +8,12 @@ namespace Library.Core
         private Book[] _books = new Book[16];
         private User[] _users = new User[16];
         private Category[] _categories = new Category[16];
+        private Loan[] _loans = new Loan[16];
+        private int[] _activeLoans = new int[16];
         private int _bookCount;
         private int _userCount;
         private int _categoryCount;
+        private int _loanCount;
         private readonly TextStore _texts = new TextStore();
 
         public BookId AddBook(long isbn, string title, string author, ushort year, CategoryId categoryId)
@@ -20,7 +23,10 @@ namespace Library.Core
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(categoryId.Value, _categoryCount);
 
             if (_bookCount == _books.Length)
+            {
                 Array.Resize(ref _books, _books.Length * 2);
+                Array.Resize(ref _activeLoans, _activeLoans.Length * 2);
+            }
 
             var (titleOffset, titleLength) = _texts.Add(title);
             var (authorOffset, authorLength) = _texts.Add(author);
@@ -134,6 +140,54 @@ namespace Library.Core
             var category = GetCategory(id);
             var name = _texts.Get(category.NameOffset, category.NameLength);
             return name;
+        }
+
+        private int AddLoan(long loanedAt, long dueAt, BookId bookId, UserId userId)
+        {
+            if (_loanCount == _loans.Length)
+                Array.Resize(ref _loans, _loans.Length * 2);
+
+            var loan = new Loan
+            {
+                LoanedAt = loanedAt,
+                DueAt = dueAt,
+                ReturnedAt = 0,
+                BookId = bookId,
+                UserId = userId,
+                State = LoanState.Active
+            };
+
+            _loans[_loanCount] = loan;
+            int index = _loanCount;
+            _loanCount++;
+            return index;
+        }
+
+        public bool TryLoan(BookId bookId, UserId userId, long now, out LoanError error)
+        {
+            if (bookId.Value < 0 || bookId.Value >= _bookCount)
+            {
+                error = LoanError.BookNotFound;
+                return false;
+            }
+
+            if (userId.Value < 0 || userId.Value >= _userCount)
+            {
+                error = LoanError.UserNotFound;
+                return false;
+            }
+
+            if (_activeLoans[bookId.Value] != 0)
+            {
+                error = LoanError.BookUnavailable;
+                return false;
+            }
+
+            long dueDate = now + 30 * 24 * 60 * 60;
+            int index = AddLoan(now, dueDate, bookId, userId);
+            _activeLoans[bookId.Value] = index + 1;
+            error = LoanError.None;
+            return true;
         }
     }
 }
