@@ -189,5 +189,44 @@ namespace Library.Core
             error = LoanError.None;
             return true;
         }
+
+        public bool TryReturn(BookId bookId, UserId userId, long now, out LoanError error)
+        {
+            if (bookId.Value < 0 || bookId.Value >= _bookCount)
+            {
+                error = LoanError.BookNotFound;
+                return false;
+            }
+
+            if (userId.Value < 0 || userId.Value >= _userCount)
+            {
+                error = LoanError.UserNotFound;
+                return false;
+            }
+
+            if (_activeLoans[bookId.Value] == 0)
+            {
+                error = LoanError.BookNotLoaned;
+                return false;
+            }
+
+            int loanIndex = _activeLoans[bookId.Value] - 1;
+
+            if (_loans[loanIndex].UserId != userId)
+            {
+                error = LoanError.UserMismatch;
+                return false;
+            }
+
+            _loans[loanIndex] = _loans[loanIndex] with
+            {
+                ReturnedAt = now,
+                State = LoanState.Returned
+            };
+            _activeLoans[bookId.Value] = 0;
+
+            error = LoanError.None; 
+            return true;
+        }
     }
 }

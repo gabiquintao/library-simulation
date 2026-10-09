@@ -5,6 +5,8 @@
         None,
         BookNotFound,
         UserNotFound,
-        BookUnavailable
+        BookUnavailable,
+        BookNotLoaned,
+        UserMismatch
     }
 }

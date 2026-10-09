@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Roadmap.md" />
+  </Folder>
   <Project Path="Library.Cli/Library.Cli.csproj" />
+  <Project Path="Library.Core.Tests/Library.Core.Tests.csproj" Id="3b56afb5-dda5-4935-bb86-4d98f2dc0457" />
   <Project Path="Library.Core/Library.Core.csproj" />
 </Solution>
