@@ -143,4 +143,124 @@ public class CatalogTests
         Assert.True(ok);
         Assert.Equal(LoanError.None, error);
     }
+
+    [Fact]
+    public void TryLoan_UnknownUserAndUnavailableBook_ReturnsUserNotFound()
+    {
+        _catalog.TryLoan(_book0, _ana, T0, out _);
+
+        bool ok = _catalog.TryLoan(_book0, new UserId(99), T0, out LoanError error);
+
+        Assert.False(ok);
+        Assert.Equal(LoanError.UserNotFound, error);
+    }
+
+    [Fact]
+    public void AddBook_BeyondInitialCapacity_KeepsBooksAndActiveLoans()
+    {
+        _catalog.TryLoan(_book0, _ana, T0, out _);
+
+        BookId last = default;
+        for (int i = 0; i < 40; i++)
+            last = _catalog.AddBook(9780000000000 + i, $"Book {i}", "Author", 2000, new CategoryId(0));
+
+        Assert.Equal("Book 39", _catalog.GetTitle(last));
+        Assert.Equal("Dom Casmurro", _catalog.GetTitle(_book0));
+
+        bool ok = _catalog.TryLoan(_book0, _rui, T0, out LoanError error);
+        Assert.False(ok);
+        Assert.Equal(LoanError.BookUnavailable, error);
+
+        Assert.True(_catalog.TryLoan(last, _ana, T0, out _));
+        Assert.True(_catalog.TryReturn(last, _ana, T0 + Day, out _));
+    }
+
+    [Fact]
+    public void AddUser_BeyondInitialCapacity_KeepsAllUsers()
+    {
+        UserId last = default;
+        for (int i = 0; i < 40; i++)
+            last = _catalog.AddUser($"User {i}");
+
+        Assert.Equal("User 39", _catalog.GetUserName(last));
+        Assert.Equal("Ana", _catalog.GetUserName(_ana));
+    }
+
+    [Fact]
+    public void AddCategory_BeyondInitialCapacity_KeepsAllCategories()
+    {
+        CategoryId last = default;
+        for (int i = 0; i < 40; i++)
+            last = _catalog.AddCategory($"Category {i}");
+
+        Assert.Equal("Category 39", _catalog.GetCategoryName(last));
+        Assert.Equal("Ficção", _catalog.GetCategoryName(new CategoryId(0)));
+    }
+
+    [Fact]
+    public void LoanCycles_BeyondInitialCapacity_KeepWorking()
+    {
+        for (int i = 0; i < 40; i++)
+        {
+            long now = T0 + i * 2 * Day;
+
+            Assert.True(_catalog.TryLoan(_book0, _ana, now, out _));
+            Assert.True(_catalog.TryReturn(_book0, _ana, now + Day, out _));
+        }
+    }
+
+    [Fact]
+    public void AddBook_NullTitle_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(
+            () => _catalog.AddBook(1, null!, "Author", 2000, new CategoryId(0)));
+    }
+
+    [Fact]
+    public void AddBook_NullAuthor_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(
+            () => _catalog.AddBook(1, "Title", null!, 2000, new CategoryId(0)));
+    }
+
+    [Fact]
+    public void AddBook_NonExistentCategory_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => _catalog.AddBook(1, "Title", "Author", 2000, new CategoryId(99)));
+    }
+
+    [Fact]
+    public void AddUser_NullName_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => _catalog.AddUser(null!));
+    }
+
+    [Fact]
+    public void AddCategory_NullName_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => _catalog.AddCategory(null!));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(99)]
+    public void GetTitle_InvalidId_Throws(int id)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => _catalog.GetTitle(new BookId(id)));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(99)]
+    public void GetUserName_InvalidId_Throws(int id)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => _catalog.GetUserName(new UserId(id)));
+    }
+
+    [Fact]
+    public void GetCategoryName_InvalidId_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => _catalog.GetCategoryName(new CategoryId(99)));
+    }
 }
