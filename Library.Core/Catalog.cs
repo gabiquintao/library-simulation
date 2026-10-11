@@ -1,5 +1,6 @@
 ﻿using Library.Core.Models;
 using Library.Core.Storage;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Library.Core
 {
@@ -15,13 +16,10 @@ namespace Library.Core
         private int _categoryCount;
         private int _loanCount;
         private readonly TextStore _texts = new TextStore();
+        private readonly Dictionary<long, BookId> _isbnIndex = new Dictionary<long, BookId>();
 
-        public BookId AddBook(long isbn, string title, string author, ushort year, CategoryId categoryId)
+        private BookId AddBook(long isbn, string title, string author, ushort year, CategoryId categoryId)
         {
-            ArgumentNullException.ThrowIfNull(title);
-            ArgumentNullException.ThrowIfNull(author);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(categoryId.Value, _categoryCount);
-
             if (_bookCount == _books.Length)
             {
                 Array.Resize(ref _books, _books.Length * 2);
@@ -49,11 +47,35 @@ namespace Library.Core
             return id;
         }
 
+        public bool TryAddBook(long isbn, string title, string author, ushort year, CategoryId categoryId, out BookId bookId, out AddBookError error)
+        {
+            ArgumentNullException.ThrowIfNull(title);
+            ArgumentNullException.ThrowIfNull(author);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(categoryId.Value, _categoryCount);
+
+            if (_isbnIndex.ContainsKey(isbn))
+            {
+                bookId = default;
+                error = AddBookError.DuplicateIsbn;
+                return false;
+            }
+
+            bookId = AddBook(isbn, title, author, year, categoryId);
+            _isbnIndex.Add(isbn, bookId);
+            error = AddBookError.None;
+            return true;
+        }
+
         private Book GetBook(BookId id)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(id.Value);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(id.Value, _bookCount);
             return _books[id.Value];
+        }
+
+        public bool TryGetBookIdByIsbn(long isbn, out BookId bookId)
+        {
+            return _isbnIndex.TryGetValue(isbn, out bookId);
         }
 
         public string GetTitle(BookId id)
